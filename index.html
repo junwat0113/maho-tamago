@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="まほうのたまご" />
+<title>まほうのたまご</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  html, body { -webkit-tap-highlight-color: transparent; }
+  .ic { display:inline-flex; align-items:center; justify-content:center; }
+  .ic svg { width:100%; height:100%; }
+  .ic.thin svg { stroke-width:1.5px; }
+  .char-wrap { position:relative; display:inline-flex; align-items:center; justify-content:center; }
+  .spark { position:absolute; top:-16px; right:-16px; }
+  @keyframes popIn { 0%{transform:scale(.85);opacity:0} 100%{transform:scale(1);opacity:1} }
+  .pop { animation: popIn .2s ease-out; }
+  /* スクロールバーを控えめに */
+  .scroll-area::-webkit-scrollbar { width:4px; }
+  .scroll-area::-webkit-scrollbar-thumb { background:#e9d5ff; border-radius:9999px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+//APP_START
+
+const ICONS = {"apple": "<path d=\"M12 6.528V3a1 1 0 0 1 1-1h0\" /> <path d=\"M18.237 21A15 15 0 0 0 22 11a6 6 0 0 0-10-4.472A6 6 0 0 0 2 11a15.1 15.1 0 0 0 3.763 10 3 3 0 0 0 3.648.648 5.5 5.5 0 0 1 5.178 0A3 3 0 0 0 18.237 21\" />", "award": "<path d=\"m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526\" /> <circle cx=\"12\" cy=\"8\" r=\"6\" />", "baby": "<path d=\"M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5\" /> <path d=\"M15 12h.01\" /> <path d=\"M19.38 6.813A9 9 0 0 1 20.8 10.2a2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1\" /> <path d=\"M9 12h.01\" />", "bird": "<path d=\"M16 7h.01\" /> <path d=\"M3.4 18H12a8 8 0 0 0 8-8V7a4 4 0 0 0-7.28-2.3L2 20\" /> <path d=\"m20 7 2 .5-2 .5\" /> <path d=\"M10 18v3\" /> <path d=\"M14 17.75V21\" /> <path d=\"M7 18a6 6 0 0 0 3.84-10.61\" />", "book-open": "<path d=\"M12 7v14\" /> <path d=\"M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z\" />", "bot": "<path d=\"M12 8V4H8\" /> <rect width=\"16\" height=\"12\" x=\"4\" y=\"8\" rx=\"2\" /> <path d=\"M2 14h2\" /> <path d=\"M20 14h2\" /> <path d=\"M15 13v2\" /> <path d=\"M9 13v2\" />", "bug": "<path d=\"M12 20v-9\" /> <path d=\"M14 7a4 4 0 0 1 4 4v3a6 6 0 0 1-12 0v-3a4 4 0 0 1 4-4z\" /> <path d=\"M14.12 3.88 16 2\" /> <path d=\"M21 21a4 4 0 0 0-3.81-4\" /> <path d=\"M21 5a4 4 0 0 1-3.55 3.97\" /> <path d=\"M22 13h-4\" /> <path d=\"M3 21a4 4 0 0 1 3.81-4\" /> <path d=\"M3 5a4 4 0 0 0 3.55 3.97\" /> <path d=\"M6 13H2\" /> <path d=\"m8 2 1.88 1.88\" /> <path d=\"M9 7.13V6a3 3 0 1 1 6 0v1.13\" />", "carrot": "<path d=\"M2.27 21.7s9.87-3.5 12.73-6.36a4.5 4.5 0 0 0-6.36-6.37C5.77 11.84 2.27 21.7 2.27 21.7zM8.64 14l-2.05-2.04M15.34 15l-2.46-2.46\" /> <path d=\"M22 9s-1.33-2-3.5-2C16.86 7 15 9 15 9s1.33 2 3.5 2S22 9 22 9z\" /> <path d=\"M15 2s-2 1.33-2 3.5S15 9 15 9s2-1.84 2-3.5C17 3.33 15 2 15 2z\" />", "cat": "<path d=\"M12 5c.67 0 1.35.09 2 .26 1.78-2 5.03-2.84 6.42-2.26 1.4.58-.42 7-.42 7 .57 1.07 1 2.24 1 3.44C21 17.9 16.97 21 12 21s-9-3-9-7.56c0-1.25.5-2.4 1-3.44 0 0-1.89-6.42-.5-7 1.39-.58 4.72.23 6.5 2.23A9.04 9.04 0 0 1 12 5Z\" /> <path d=\"M8 14v.5\" /> <path d=\"M16 14v.5\" /> <path d=\"M11.25 16.25h1.5L12 17l-.75-.75Z\" />", "chef-hat": "<path d=\"M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z\" /> <path d=\"M6 17h12\" />", "cherry": "<path d=\"M2 17a5 5 0 0 0 10 0c0-2.76-2.5-5-5-3-2.5-2-5 .24-5 3Z\" /> <path d=\"M12 17a5 5 0 0 0 10 0c0-2.76-2.5-5-5-3-2.5-2-5 .24-5 3Z\" /> <path d=\"M7 14c3.22-2.91 4.29-8.75 5-12 1.66 2.38 4.94 9 5 12\" /> <path d=\"M22 9c-4.29 0-7.14-2.33-10-7 5.71 0 10 4.67 10 7Z\" />", "chevron-right": "<path d=\"m9 18 6-6-6-6\" />", "clock": "<circle cx=\"12\" cy=\"12\" r=\"10\" /> <path d=\"M12 6v6l4 2\" />", "cloud": "<path d=\"M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z\" />", "crown": "<path d=\"M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z\" /> <path d=\"M5 21h14\" />", "dog": "<path d=\"M11.25 16.25h1.5L12 17z\" /> <path d=\"M16 14v.5\" /> <path d=\"M4.42 11.247A13.152 13.152 0 0 0 4 14.556C4 18.728 7.582 21 12 21s8-2.272 8-6.444a11.702 11.702 0 0 0-.493-3.309\" /> <path d=\"M8 14v.5\" /> <path d=\"M8.5 8.5c-.384 1.05-1.083 2.028-2.344 2.5-1.931.722-3.576-.297-3.656-1-.113-.994 1.177-6.53 4-7 1.923-.321 3.651.845 3.651 2.235A7.497 7.497 0 0 1 14 5.277c0-1.39 1.844-2.598 3.767-2.277 2.823.47 4.113 6.006 4 7-.08.703-1.725 1.722-3.656 1-1.261-.472-1.855-1.45-2.239-2.5\" />", "egg": "<path d=\"M12 2C8 2 4 8 4 14a8 8 0 0 0 16 0c0-6-4-12-8-12\" />", "fish": "<path d=\"M6.5 12c.94-3.46 4.94-6 8.5-6 3.56 0 6.06 2.54 7 6-.94 3.47-3.44 6-7 6s-7.56-2.53-8.5-6Z\" /> <path d=\"M18 12v.5\" /> <path d=\"M16 17.93a9.77 9.77 0 0 1 0-11.86\" /> <path d=\"M7 10.67C7 8 5.58 5.97 2.73 5.5c-1 1.5-1 5 .23 6.5-1.24 1.5-1.24 5-.23 6.5C5.58 18.03 7 16 7 13.33\" /> <path d=\"M10.46 7.26C10.2 5.88 9.17 4.24 8 3h5.8a2 2 0 0 1 1.98 1.67l.23 1.4\" /> <path d=\"m16.01 17.93-.23 1.4A2 2 0 0 1 13.8 21H9.5a5.96 5.96 0 0 0 1.49-3.98\" />", "flame": "<path d=\"M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4\" />", "flower": "<circle cx=\"12\" cy=\"12\" r=\"3\" /> <path d=\"M12 16.5A4.5 4.5 0 1 1 7.5 12 4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 1 1 4.5 4.5 4.5 4.5 0 1 1-4.5 4.5\" /> <path d=\"M12 7.5V9\" /> <path d=\"M7.5 12H9\" /> <path d=\"M16.5 12H15\" /> <path d=\"M12 16.5V15\" /> <path d=\"m8 8 1.88 1.88\" /> <path d=\"M14.12 9.88 16 8\" /> <path d=\"m8 16 1.88-1.88\" /> <path d=\"M14.12 14.12 16 16\" />", "gem": "<path d=\"M10.5 3 8 9l4 13 4-13-2.5-6\" /> <path d=\"M17 3a2 2 0 0 1 1.6.8l3 4a2 2 0 0 1 .013 2.382l-7.99 10.986a2 2 0 0 1-3.247 0l-7.99-10.986A2 2 0 0 1 2.4 7.8l2.998-3.997A2 2 0 0 1 7 3z\" /> <path d=\"M2 9h20\" />", "ghost": "<path d=\"M9 10h.01\" /> <path d=\"M15 10h.01\" /> <path d=\"M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z\" />", "glasses": "<circle cx=\"6\" cy=\"15\" r=\"4\" /> <circle cx=\"18\" cy=\"15\" r=\"4\" /> <path d=\"M14 15a2 2 0 0 0-2-2 2 2 0 0 0-2 2\" /> <path d=\"M2.5 13 5 7c.7-1.3 1.4-2 3-2\" /> <path d=\"M21.5 13 19 7c-.7-1.3-1.5-2-3-2\" />", "hammer": "<path d=\"m15 12-9.373 9.373a1 1 0 0 1-3.001-3L12 9\" /> <path d=\"m18 15 4-4\" /> <path d=\"m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172v-.344a2 2 0 0 0-.586-1.414l-1.657-1.657A6 6 0 0 0 12.516 3H9l1.243 1.243A6 6 0 0 1 12 8.485V10l2 2h1.172a2 2 0 0 1 1.414.586L18.5 14.5\" />", "heart": "<path d=\"M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5\" />", "info": "<circle cx=\"12\" cy=\"12\" r=\"10\" /> <path d=\"M12 16v-4\" /> <path d=\"M12 8h.01\" />", "leaf": "<path d=\"M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z\" /> <path d=\"M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12\" />", "moon": "<path d=\"M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401\" />", "music": "<path d=\"M9 18V5l12-2v13\" /> <circle cx=\"6\" cy=\"18\" r=\"3\" /> <circle cx=\"18\" cy=\"16\" r=\"3\" />", "play": "<path d=\"M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z\" />", "rabbit": "<path d=\"M13 16a3 3 0 0 1 2.24 5\" /> <path d=\"M18 12h.01\" /> <path d=\"M18 21h-8a4 4 0 0 1-4-4 7 7 0 0 1 7-7h.2L9.6 6.4a1 1 0 1 1 2.8-2.8L15.8 7h.2c3.3 0 6 2.7 6 6v1a2 2 0 0 1-2 2h-1a3 3 0 0 0-3 3\" /> <path d=\"M20 8.54V4a2 2 0 1 0-4 0v3\" /> <path d=\"M7.612 12.524a3 3 0 1 0-1.6 4.3\" />", "rocket": "<path d=\"M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5\" /> <path d=\"M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09\" /> <path d=\"M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z\" /> <path d=\"M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05\" />", "rotate-ccw": "<path d=\"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8\" /> <path d=\"M3 3v5h5\" />", "snowflake": "<path d=\"m10 20-1.25-2.5L6 18\" /> <path d=\"M10 4 8.75 6.5 6 6\" /> <path d=\"m14 20 1.25-2.5L18 18\" /> <path d=\"m14 4 1.25 2.5L18 6\" /> <path d=\"m17 21-3-6h-4\" /> <path d=\"m17 3-3 6 1.5 3\" /> <path d=\"M2 12h6.5L10 9\" /> <path d=\"m20 10-1.5 2 1.5 2\" /> <path d=\"M22 12h-6.5L14 15\" /> <path d=\"m4 10 1.5 2L4 14\" /> <path d=\"m7 21 3-6-1.5-3\" /> <path d=\"m7 3 3 6h4\" />", "sparkles": "<path d=\"M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z\" /> <path d=\"M20 2v4\" /> <path d=\"M22 4h-4\" /> <circle cx=\"4\" cy=\"20\" r=\"2\" />", "square": "<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\" />", "star": "<path d=\"M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z\" />", "stethoscope": "<path d=\"M11 2v2\" /> <path d=\"M5 2v2\" /> <path d=\"M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1\" /> <path d=\"M8 15a6 6 0 0 0 12 0v-3\" /> <circle cx=\"20\" cy=\"10\" r=\"2\" />", "sun": "<circle cx=\"12\" cy=\"12\" r=\"4\" /> <path d=\"M12 2v2\" /> <path d=\"M12 20v2\" /> <path d=\"m4.93 4.93 1.41 1.41\" /> <path d=\"m17.66 17.66 1.41 1.41\" /> <path d=\"M2 12h2\" /> <path d=\"M20 12h2\" /> <path d=\"m6.34 17.66-1.41 1.41\" /> <path d=\"m19.07 4.93-1.41 1.41\" />", "trees": "<path d=\"M10 10v.2A3 3 0 0 1 8.9 16H5a3 3 0 0 1-1-5.8V10a3 3 0 0 1 6 0Z\" /> <path d=\"M7 16v6\" /> <path d=\"M13 19v3\" /> <path d=\"M12 19h8.3a1 1 0 0 0 .7-1.7L18 14h.3a1 1 0 0 0 .7-1.7L16 9h.2a1 1 0 0 0 .8-1.7L13 3l-1.4 1.5\" />", "volume-2": "<path d=\"M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z\" /> <path d=\"M16 9a5 5 0 0 1 0 6\" /> <path d=\"M19.364 18.364a9 9 0 0 0 0-12.728\" />", "volume-x": "<path d=\"M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z\" /> <line x1=\"22\" x2=\"16\" y1=\"9\" y2=\"15\" /> <line x1=\"16\" x2=\"22\" y1=\"9\" y2=\"15\" />", "wand": "<path d=\"M15 4V2\" /> <path d=\"M15 16v-2\" /> <path d=\"M8 9h2\" /> <path d=\"M20 9h2\" /> <path d=\"M17.8 11.8 19 13\" /> <path d=\"M15 9h.01\" /> <path d=\"M17.8 6.2 19 5\" /> <path d=\"m3 21 9-9\" /> <path d=\"M12.2 6.2 11 5\" />", "zap": "<path d=\"M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z\" />", "help-circle": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3\"/><path d=\"M12 17h.01\"/>"};
+
+function svgIcon(name){
+  const inner = ICONS[name] || '';
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="width:100%;height:100%">'+inner+'</svg>';
+}
+
+// =========================================================
+//  キャラクターマスターデータ（全50種類）
+//  icon は lucide のアイコン名（ケバブケース）
+// =========================================================
+const CHARACTERS = {
+  // --- Level 1 ---
+  egg: { id:'egg', name:'ふしぎなたまご', level:1, icon:'egg', color:'text-pink-400', desc:'お勉強をがんばると生まれるたまご。', next:['baby_pink','baby_blue','baby_yellow','baby_green'] },
+
+  // --- Level 2 ---
+  baby_pink:  { id:'baby_pink',  name:'ピンキー（あかちゃん）', level:2, icon:'baby', color:'text-pink-500',  desc:'元気いっぱいなピンクのあかちゃん。', next:['cat','rabbit','flower'] },
+  baby_blue:  { id:'baby_blue',  name:'ブルル（あかちゃん）',   level:2, icon:'baby', color:'text-blue-500',  desc:'おっとりした青いあかちゃん。',     next:['fish','cloud','snowflake'] },
+  baby_yellow:{ id:'baby_yellow',name:'キイロ（あかちゃん）',   level:2, icon:'baby', color:'text-yellow-500',desc:'キラキラ輝く黄色のあかちゃん。',   next:['star','sun','zap'] },
+  baby_green: { id:'baby_green', name:'ミドリ（あかちゃん）',   level:2, icon:'baby', color:'text-green-500', desc:'自然が大好きな緑のあかちゃん。',   next:['bug','leaf','apple'] },
+
+  // --- Level 3 ---
+  cat:       { id:'cat',       name:'モコねこ',           level:3, icon:'cat',       color:'text-gray-600',  desc:'好奇心旺盛な子猫。',            next:['lion','detective','magic_cat'] },
+  rabbit:    { id:'rabbit',    name:'ピョンうさぎ',       level:3, icon:'rabbit',    color:'text-pink-400',  desc:'跳ねるのが大好きなウサギ。',    next:['idol','nurse','moon_rabbit'] },
+  flower:    { id:'flower',    name:'つぼみちゃん',       level:3, icon:'flower',    color:'text-red-400',   desc:'綺麗なお花になる準備中。',      next:['rose','sunflower','cherry_blossom'] },
+  fish:      { id:'fish',      name:'スイマーフィッシュ', level:3, icon:'fish',      color:'text-blue-400',  desc:'泳ぎが上手なお魚。',            next:['dolphin','shark','mermaid'] },
+  cloud:     { id:'cloud',     name:'ふわふわ雲',         level:3, icon:'cloud',     color:'text-gray-400',  desc:'空をぷかぷか浮かんでいる雲。',  next:['rain_cloud','thunder_cloud','rainbow'] },
+  snowflake: { id:'snowflake', name:'ゆきだるまキッズ',   level:3, icon:'snowflake', color:'text-blue-300',  desc:'冷たいけど優しい雪の子。',      next:['ice_princess','yeti','crystal'] },
+  star:      { id:'star',      name:'きらきら星',         level:3, icon:'star',      color:'text-yellow-400',desc:'夜空から落ちてきた小さな星。',  next:['shooting_star','sun','galaxy'] },
+  sun:       { id:'sun',       name:'ぽかぽか太陽',       level:3, icon:'sun',       color:'text-orange-500',desc:'みんなを温かく照らす太陽。',    next:['phoenix','fire_dragon','summer_god'] },
+  zap:       { id:'zap',       name:'ビリビリキッズ',     level:3, icon:'zap',       color:'text-yellow-600',desc:'電気の力を持つ元気な子。',      next:['thunder_bird','hero','inventor'] },
+  bug:       { id:'bug',       name:'ちびむし',           level:3, icon:'bug',       color:'text-green-600',  desc:'葉っぱをたくさん食べる幼虫。',  next:['butterfly','beetle','ladybug'] },
+  leaf:      { id:'leaf',      name:'はっぱ妖精',         level:3, icon:'leaf',      color:'text-green-400',  desc:'森に住む小さな妖精。',          next:['tree_ent','nature_god','forest_owl'] },
+  apple:     { id:'apple',     name:'りんごっ子',         level:3, icon:'apple',     color:'text-red-500',    desc:'甘くて美味しいリンゴの子。',    next:['patissier','farmer','fruit_basket'] },
+
+  // --- Level 4 ---
+  lion:          { id:'lion',          name:'たてがみライオン', level:4, icon:'dog',        color:'text-yellow-700', desc:'百獣の王を目指すライオン。',     next:['king_lion'] },
+  detective:     { id:'detective',     name:'めいたんてい',     level:4, icon:'glasses',    color:'text-gray-800',   desc:'どんな謎も解き明かす名探偵。',   next:['super_detective'] },
+  magic_cat:     { id:'magic_cat',     name:'まほうねこ',       level:4, icon:'wand',       color:'text-purple-500', desc:'不思議な魔法が使える猫。',       next:['grand_wizard'] },
+  idol:          { id:'idol',          name:'ステージアイドル', level:4, icon:'music',      color:'text-pink-500',   desc:'みんなに笑顔を届けるアイドル。', next:['super_idol'] },
+  nurse:         { id:'nurse',         name:'やさしいナース',   level:4, icon:'stethoscope',color:'text-pink-400',   desc:'怪我や病気を治してくれる。',     next:['super_doctor'] },
+  moon_rabbit:   { id:'moon_rabbit',   name:'おつきみうさぎ',   level:4, icon:'moon',       color:'text-amber-400',  desc:'月でお餅をついているウサギ。',   next:['space_rabbit'] },
+  rose:          { id:'rose',          name:'じょうねつのバラ', level:4, icon:'flower',     color:'text-red-600',    desc:'美しく咲き誇る赤いバラ。',       next:['flower_queen'] },
+  sunflower:     { id:'sunflower',     name:'げんきなヒマワリ', level:4, icon:'flower',     color:'text-yellow-500', desc:'太陽に向かって元気に咲く。',     next:['sun_goddess'] },
+  cherry_blossom:{ id:'cherry_blossom',name:'さくら姫',         level:4, icon:'cherry',     color:'text-pink-400',   desc:'春を知らせる美しい桜。',         next:['spring_goddess'] },
+  dolphin:       { id:'dolphin',       name:'かしこいイルカ',   level:4, icon:'fish',       color:'text-blue-500',   desc:'海をスイスイ泳ぐイルカ。',       next:['ocean_king'] },
+  shark:         { id:'shark',         name:'はらぺこサメ',     level:4, icon:'fish',       color:'text-gray-500',   desc:'いつもお腹を空かせているサメ。', next:['megalodon'] },
+  mermaid:       { id:'mermaid',       name:'にんぎょ姫',       level:4, icon:'crown',      color:'text-cyan-400',   desc:'美しい歌声を持つ人魚。',         next:['sea_queen'] },
+  rain_cloud:    { id:'rain_cloud',    name:'あまぐも',         level:4, icon:'cloud',      color:'text-gray-600',   desc:'恵みの雨を降らせる雲。',         next:['water_dragon'] },
+  thunder_cloud: { id:'thunder_cloud', name:'かみなりぐも',     level:4, icon:'zap',        color:'text-yellow-500', desc:'ゴロゴロ雷を落とす雲。',         next:['thunder_god'] },
+  rainbow:       { id:'rainbow',       name:'にじいろブリッジ', level:4, icon:'cloud',      color:'text-purple-400', desc:'雨上がりに空にかかる虹。',       next:['rainbow_dragon'] },
+  ice_princess:  { id:'ice_princess',  name:'こおりの姫',       level:4, icon:'snowflake',  color:'text-cyan-300',   desc:'氷の魔法を使うお姫様。',         next:['snow_queen'] },
+  yeti:          { id:'yeti',          name:'ゆきおとこ',       level:4, icon:'ghost',      color:'text-slate-400',  desc:'雪山に住む力持ち。',             next:['ice_titan'] },
+  crystal:       { id:'crystal',       name:'ひかるクリスタル', level:4, icon:'gem',        color:'text-blue-300',   desc:'神秘的な光を放つ宝石。',         next:['jewel_master'] },
+  shooting_star: { id:'shooting_star', name:'ながれぼし',       level:4, icon:'rocket',     color:'text-yellow-300', desc:'願い事を叶えてくれる流れ星。',   next:['space_explorer'] },
+  galaxy:        { id:'galaxy',        name:'うちゅうの渦',     level:4, icon:'star',       color:'text-purple-600', desc:'星がたくさん集まった銀河。',     next:['universe_creator'] },
+  phoenix:       { id:'phoenix',       name:'ふしちょう',       level:4, icon:'flame',      color:'text-red-500',    desc:'炎をまとった美しい鳥。',         next:['fire_emperor'] },
+  fire_dragon:   { id:'fire_dragon',   name:'ほのおのドラゴン', level:4, icon:'flame',      color:'text-orange-600', desc:'口から炎を吐く強大なドラゴン。', next:['dragon_king'] },
+  summer_god:    { id:'summer_god',    name:'なつの神様',       level:4, icon:'sun',        color:'text-yellow-600', desc:'夏に元気をくれる神様。',         next:['season_master'] },
+  thunder_bird:  { id:'thunder_bird',  name:'サンダーバード',   level:4, icon:'zap',        color:'text-yellow-400', desc:'雷のスピードで飛ぶ鳥。',         next:['lightning_king'] },
+  hero:          { id:'hero',          name:'せいぎのヒーロー', level:4, icon:'heart',      color:'text-red-500',    desc:'平和を守るかっこいいヒーロー。', next:['super_hero'] },
+  inventor:      { id:'inventor',      name:'てんさい発明家',   level:4, icon:'hammer',     color:'text-gray-700',   desc:'すごい機械を作る発明家。',       next:['master_builder'] },
+  butterfly:     { id:'butterfly',     name:'ひらひらチョウ',   level:4, icon:'bug',        color:'text-pink-400',   desc:'綺麗な羽で飛ぶチョウチョ。',     next:['fairy_queen'] },
+  beetle:        { id:'beetle',        name:'かぶとむし',       level:4, icon:'bug',        color:'text-amber-800',  desc:'立派なツノを持つカブトムシ。',   next:['hercules_beetle'] },
+  ladybug:       { id:'ladybug',       name:'てんとうむし',     level:4, icon:'bug',        color:'text-red-600',    desc:'幸運を運ぶてんとう虫。',         next:['lucky_charm'] },
+  tree_ent:      { id:'tree_ent',      name:'もりの長老',       level:4, icon:'trees',      color:'text-green-800',  desc:'森を守る古くて大きな木。',       next:['world_tree'] },
+  nature_god:    { id:'nature_god',    name:'しぜんの神様',     level:4, icon:'leaf',       color:'text-green-500',  desc:'自然と動物を愛する神様。',       next:['earth_guardian'] },
+  forest_owl:    { id:'forest_owl',    name:'もりのフクロウ',   level:4, icon:'bird',       color:'text-amber-700',  desc:'森の賢者と呼ばれるフクロウ。',   next:['wisdom_keeper'] },
+  patissier:     { id:'patissier',     name:'パティシエ',       level:4, icon:'chef-hat',   color:'text-pink-500',   desc:'美味しいケーキを作る職人。',     next:['master_chef'] },
+  farmer:        { id:'farmer',        name:'はたけの達人',     level:4, icon:'carrot',     color:'text-orange-500', desc:'美味しい野菜を育てる名人。',     next:['harvest_god'] },
+  fruit_basket:  { id:'fruit_basket',  name:'フルーツバスケット',level:4,icon:'apple',      color:'text-red-400',    desc:'果物がいっぱい詰まったカゴ。',   next:['fruit_master'] },
+
+  // --- Level 5 ---
+  king_lion:        { id:'king_lion',        name:'キングライオン',       level:5, icon:'crown',    color:'text-yellow-600', desc:'サバンナを統べる偉大な王様。',       next:[] },
+  super_detective:  { id:'super_detective',  name:'スーパー名探偵',       level:5, icon:'glasses',  color:'text-indigo-800', desc:'世界のあらゆる謎を解明した大探偵。', next:[] },
+  grand_wizard:     { id:'grand_wizard',     name:'大魔法使い',           level:5, icon:'wand',     color:'text-purple-600', desc:'究極の魔法を操る偉大な魔法使い。',   next:[] },
+  super_idol:       { id:'super_idol',       name:'トップアイドル',       level:5, icon:'star',     color:'text-pink-600',   desc:'世界中から愛されるトップスター。',   next:[] },
+  super_doctor:     { id:'super_doctor',     name:'ゴッドハンド医師',     level:5, icon:'heart',    color:'text-red-500',    desc:'どんな病気も治せる奇跡の医師。',     next:[] },
+  space_rabbit:     { id:'space_rabbit',     name:'宇宙うさぎ',           level:5, icon:'rocket',   color:'text-blue-400',   desc:'宇宙を飛び回るサイバーなウサギ。',   next:[] },
+  flower_queen:     { id:'flower_queen',     name:'お花の女王',           level:5, icon:'crown',    color:'text-pink-500',   desc:'全ての花を愛し統べる優しき女王。',   next:[] },
+  sun_goddess:      { id:'sun_goddess',      name:'太陽の女神',           level:5, icon:'sun',      color:'text-orange-500', desc:'世界を明るく照らす太陽の化身。',     next:[] },
+  ocean_king:       { id:'ocean_king',       name:'海神ポセイドン',       level:5, icon:'crown',    color:'text-blue-600',   desc:'七つの海を支配する偉大な海の王。',   next:[] },
+  dragon_king:      { id:'dragon_king',      name:'竜王バハムート',       level:5, icon:'flame',    color:'text-red-700',    desc:'全てのドラゴンを束ねる最強の竜王。', next:[] },
+  thunder_god:      { id:'thunder_god',      name:'雷神ゼウス',           level:5, icon:'zap',      color:'text-yellow-500', desc:'雷を自在に操る天空の神。',           next:[] },
+  rainbow_dragon:   { id:'rainbow_dragon',   name:'虹色ドラゴン',         level:5, icon:'cloud',    color:'text-purple-500', desc:'空に虹を架ける伝説のドラゴン。',     next:[] },
+  snow_queen:       { id:'snow_queen',       name:'雪の女王',             level:5, icon:'snowflake',color:'text-cyan-400',   desc:'氷の世界を美しく治める女王。',       next:[] },
+  jewel_master:     { id:'jewel_master',     name:'宝石の精霊',           level:5, icon:'gem',      color:'text-fuchsia-500',desc:'世界中の宝石の輝きを持つ精霊。',     next:[] },
+  universe_creator: { id:'universe_creator', name:'宇宙の創造主',         level:5, icon:'sparkles', color:'text-indigo-500', desc:'星々を生み出す神秘的な存在。',       next:[] },
+  super_hero:       { id:'super_hero',       name:'伝説の勇者',           level:5, icon:'heart',    color:'text-red-600',    desc:'世界を救った伝説の英雄。',           next:[] },
+  master_builder:   { id:'master_builder',   name:'大発明王',             level:5, icon:'bot',      color:'text-gray-600',   desc:'未来の機械を発明する大天才。',       next:[] },
+  fairy_queen:      { id:'fairy_queen',      name:'妖精の女王',           level:5, icon:'crown',    color:'text-green-400',  desc:'森の妖精たちを優しく見守る女王。',   next:[] },
+  world_tree:       { id:'world_tree',       name:'世界樹ユグドラシル',   level:5, icon:'trees',    color:'text-green-700',  desc:'星の命を支える巨大な神の木。',       next:[] },
+  master_chef:      { id:'master_chef',      name:'三ツ星シェフ',         level:5, icon:'chef-hat', color:'text-orange-600', desc:'世界一美味しい料理を作る料理人。',   next:[] }
+};
+
+const SUPPORT_MESSAGES = [
+  "いっしょに がんばろうね！✨",
+  "お勉強している姿、すっごくかっこいいよ！💖",
+  "じっくり やれば だいじょうぶ！🌸",
+  "あと少し！応援しているよ！📣",
+  "集中していて えらいなぁ！⭐",
+  "あせらず、ひとつずつ やってみよう！🌱",
+  "キミのがんばり、ちゃんと見ているよ！🎀"
+];
+
+const TEST_EVOLVE_TIME = 15;
+const NORMAL_EVOLVE_TIME = 3600; // 1時間
+
+// =========================================================
+//  保存（localStorage）— 通常 / 大人モードで完全分離
+// =========================================================
+const SLOT_KEYS = { normal: 'mahou_save_normal_v1', adult: 'mahou_save_adult_v1' };
+
+function freshState() {
+  return { totalSeconds: 0, characterId: 'egg', discovered: ['egg'], history: [] };
+}
+
+function loadSlot(m) {
+  try {
+    const raw = localStorage.getItem(SLOT_KEYS[m]);
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    // 念のため最低限の補正
+    if (!CHARACTERS[obj.characterId]) obj.characterId = 'egg';
+    if (!Array.isArray(obj.discovered)) obj.discovered = ['egg'];
+    if (!Array.isArray(obj.history)) obj.history = [];
+    if (typeof obj.totalSeconds !== 'number') obj.totalSeconds = 0;
+    return obj;
+  } catch (e) {
+    return null;
+  }
+}
+
+function saveSlot() {
+  try {
+    localStorage.setItem(SLOT_KEYS[mode], JSON.stringify(state));
+  } catch (e) {
+    console.log('save error', e);
+  }
+}
+
+// =========================================================
+//  実行時の状態
+// =========================================================
+let mode = 'normal';                 // 'normal' | 'adult' （起動時は必ず通常）
+let state = loadSlot('normal') || freshState();
+
+let timerSeconds = 0;                // セッションの計測（保存しない）
+let isRunning = false;
+let activeTab = 'timer';             // 'timer' | 'zukan' | 'history'
+let isMuted = false;
+let showEvolutionModal = false;
+let prevCharacterId = null;
+let supportMsg = SUPPORT_MESSAGES[0];
+
+const volume = 0.5;
+let timerInterval = null;
+let msgInterval = null;
+let audioCtx = null;
+
+function currentChar() { return CHARACTERS[state.characterId] || CHARACTERS.egg; }
+function threshold() { return mode === 'adult' ? TEST_EVOLVE_TIME : NORMAL_EVOLVE_TIME; }
+
+// =========================================================
+//  音 (Web Audio API)
+// =========================================================
+function playSound(type) {
+  if (isMuted) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = audioCtx;
+    if (ctx.state === 'suspended') ctx.resume();
+
+    const playTone = (freq, duration, startTime, wave = 'sine', vol = 1) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = wave;
+      osc.frequency.setValueAtTime(freq, startTime);
+      gain.gain.setValueAtTime(vol * volume, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+      osc.start(startTime); osc.stop(startTime + duration);
+    };
+    const now = ctx.currentTime;
+    if (type === 'start') { playTone(523.25,0.1,now); playTone(659.25,0.15,now+0.1); }
+    else if (type === 'stop') { playTone(587.33,0.1,now); playTone(493.88,0.15,now+0.1); }
+    else if (type === 'click') { playTone(880,0.05,now,'triangle',0.5); }
+    else if (type === 'levelUp') {
+      const b = now;
+      playTone(523.25,0.15,b,'triangle');
+      playTone(659.25,0.15,b+0.15,'triangle');
+      playTone(783.99,0.15,b+0.3,'triangle');
+      playTone(1046.50,0.4,b+0.45,'triangle');
+      playTone(1174.66,0.08,b+0.5,'sine',0.5);
+      playTone(1318.51,0.08,b+0.58,'sine',0.5);
+      playTone(1567.98,0.15,b+0.66,'sine',0.5);
+    }
+  } catch (e) { console.log('Audio Error', e); }
+}
+
+// =========================================================
+//  時間フォーマット
+// =========================================================
+function formatTimeText(sec) {
+  const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
+  if (h>0) return `${h}時間 ${m}分 ${s}秒`;
+  if (m>0) return `${m}分 ${s}秒`;
+  return `${s}秒`;
+}
+function formatTimerDigits(sec) {
+  const h = String(Math.floor(sec/3600)).padStart(2,'0');
+  const m = String(Math.floor((sec%3600)/60)).padStart(2,'0');
+  const s = String(sec%60).padStart(2,'0');
+  return `${h}:${m}:${s}`;
+}
+function nowStr() {
+  const n = new Date();
+  return `${n.getMonth()+1}/${n.getDate()} ${n.getHours()}:${String(n.getMinutes()).padStart(2,'0')}`;
+}
+
+// =========================================================
+//  アイコン描画ヘルパー
+// =========================================================
+function icon(name, px, cls = '') {
+  return `<span class="ic ${cls}" style="width:${px}px;height:${px}px">${svgIcon(name)}</span>`;
+}
+function charIcon(char, px, studying) {
+  const anim = studying ? 'animate-bounce' : 'animate-pulse';
+  const dur = studying ? '1s' : '3s';
+  let html = `<div class="char-wrap ${char.color} ${anim}" style="animation-duration:${dur}">`;
+  html += `<span class="ic" style="width:${px}px;height:${px}px">${svgIcon(char.icon)}</span>`;
+  if (studying) {
+    html += `<span class="spark"><span class="ic text-yellow-400 animate-spin" style="width:24px;height:24px;animation-duration:2s">${svgIcon('sparkles')}</span></span>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+// =========================================================
+//  タイマー処理
+// =========================================================
+function startTicking() {
+  stopTicking();
+  timerInterval = setInterval(tick, 1000);
+}
+function stopTicking() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+}
+function tick() {
+  timerSeconds += 1;
+  state.totalSeconds += 1;
+  saveSlot();
+  updateTimerUI();
+
+  const th = threshold();
+  if (state.totalSeconds > 0 && state.totalSeconds % th === 0 && currentChar().next.length > 0) {
+    evolve();
+  }
+}
+
+// タイマータブの数字だけを更新（全体再描画せずアニメ維持）
+function updateTimerUI() {
+  const td = document.getElementById('timerDigits');
+  if (td) td.textContent = formatTimerDigits(timerSeconds);
+  const tt = document.getElementById('totalTime');
+  if (tt) tt.textContent = formatTimeText(state.totalSeconds);
+
+  const th = threshold();
+  const pct = Math.min(100, Math.floor((state.totalSeconds % th) / th * 100));
+  const gf = document.getElementById('gaugeFill');
+  if (gf) gf.style.width = pct + '%';
+  const gp = document.getElementById('gaugePercent');
+  if (gp) gp.textContent = '成長ゲージ：' + pct + '%';
+  const gr = document.getElementById('gaugeRemain');
+  if (gr) {
+    const remain = th - (state.totalSeconds % th);
+    gr.textContent = (mode === 'adult') ? `あと ${remain}秒` : `あと ${Math.ceil(remain/60)}分`;
+  }
+}
+
+// 応援メッセージ
+function startMsgRotation() {
+  stopMsgRotation();
+  msgInterval = setInterval(() => {
+    supportMsg = SUPPORT_MESSAGES[Math.floor(Math.random()*SUPPORT_MESSAGES.length)];
+    const el = document.getElementById('supportMsg');
+    if (el) el.textContent = supportMsg;
+  }, 15000);
+}
+function stopMsgRotation() {
+  if (msgInterval) { clearInterval(msgInterval); msgInterval = null; }
+}
+
+// =========================================================
+//  操作
+// =========================================================
+function handleStart() {
+  playSound('start');
+  isRunning = true;
+  startTicking();
+  startMsgRotation();
+  render();
+}
+function handleStop() {
+  playSound('stop');
+  isRunning = false;
+  stopTicking();
+  stopMsgRotation();
+  supportMsg = "お勉強を はじめるときは スタートを おしてね！";
+
+  if (timerSeconds > 0) {
+    state.history.unshift({
+      date: nowStr(), type: 'study', duration: timerSeconds,
+      text: `${Math.floor(timerSeconds/60)}分 ${timerSeconds%60}秒 がんばった！`
+    });
+    timerSeconds = 0;
+    saveSlot();
+  }
+  render();
+}
+
+function evolve() {
+  const cur = currentChar();
+  if (cur.next.length === 0) return;
+  isRunning = false;
+  stopTicking();
+  stopMsgRotation();
+  playSound('levelUp');
+
+  let nextId = cur.next[Math.floor(Math.random()*cur.next.length)];
+  if (!CHARACTERS[nextId]) {
+    const finals = Object.values(CHARACTERS).filter(c => c.level === 5);
+    nextId = finals[Math.floor(Math.random()*finals.length)].id;
+  }
+  prevCharacterId = state.characterId;
+  state.characterId = nextId;
+  if (!state.discovered.includes(nextId)) state.discovered.push(nextId);
+
+  state.history.unshift({
+    date: nowStr(), type: 'evolution', duration: timerSeconds,
+    text: `${CHARACTERS[nextId].name} に 成長したよ！🌟`
+  });
+  saveSlot();
+
+  showEvolutionModal = true;
+  render();
+}
+
+function closeModal() { playSound('click'); showEvolutionModal = false; render(); }
+
+function setTab(t) { playSound('click'); activeTab = t; render(); }
+
+function toggleMute() { isMuted = !isMuted; playSound('click'); render(); }
+
+// 新しいたまご（進化進捗だけリセット。図鑑・履歴は残す）
+function resetToEgg() {
+  playSound('click');
+  isRunning = false; stopTicking(); stopMsgRotation();
+  state.characterId = 'egg';
+  state.totalSeconds = 0;
+  timerSeconds = 0;
+  saveSlot();
+  render();
+}
+
+// 全部やり直す（今のモードのスロットだけ初期化）
+function fullReset() {
+  askConfirm("タイマーや育てたペットを最初からリセットします。<br>本当によろしいですか？", () => {
+    isRunning = false; stopTicking(); stopMsgRotation();
+    state = freshState();
+    timerSeconds = 0;
+    saveSlot();
+    render();
+  });
+}
+
+// モード切替（要件：通常データは絶対に壊さない）
+function toggleAdult() {
+  if (mode === 'normal') {
+    askConfirm(
+      "「おとなモード（15秒で成長）」に切り替えます。<br>動作確認用のモードです。<br><br>通常モードのデータは別に保存され、<br>消えませんのでご安心ください。<br><br>切り替えますか？",
+      () => switchMode('adult')
+    );
+  } else {
+    switchMode('normal');
+  }
+}
+
+function switchMode(target) {
+  if (target === mode) return;
+  saveSlot();                 // いまのモードのデータを確定保存
+  isRunning = false; stopTicking(); stopMsgRotation();
+  mode = target;
+  state = loadSlot(target) || freshState();
+  timerSeconds = 0;
+  supportMsg = "お勉強を はじめるときは スタートを おしてね！";
+  saveSlot();                 // 切替先スロットを生成
+  playSound('click');
+  render();
+}
+
+// アプリ内 確認ダイアログ（ネイティブconfirmはサンドボックスで無効化されるため自前実装）
+let confirmDialog = null; // { message, onYes }
+function askConfirm(message, onYes) { confirmDialog = { message, onYes }; render(); }
+function confirmYes() {
+  const cb = confirmDialog ? confirmDialog.onYes : null;
+  confirmDialog = null;
+  playSound('click');
+  render();
+  if (cb) cb();
+}
+function confirmNo() { confirmDialog = null; playSound('click'); render(); }
+
+// =========================================================
+//  画面描画
+// =========================================================
+function render() {
+  const char = currentChar();
+  const th = threshold();
+  const pct = Math.min(100, Math.floor((state.totalSeconds % th) / th * 100));
+  const remain = th - (state.totalSeconds % th);
+  const remainText = (mode === 'adult') ? `あと ${remain}秒` : `あと ${Math.ceil(remain/60)}分`;
+  const totalChars = Object.keys(CHARACTERS).length;
+
+  let html = '';
+
+  // ===== ヘッダー =====
+  html += `
+  <div class="min-h-screen bg-gradient-to-b from-pink-50 via-purple-50 to-blue-50 text-gray-800 font-sans pb-12 flex flex-col items-center">
+    <header class="w-full max-w-md bg-white/80 backdrop-blur shadow-md rounded-b-3xl py-4 px-6 flex justify-between items-center border-b border-pink-100">
+      <div class="flex items-center space-x-2">
+        <div class="bg-pink-400 p-1.5 rounded-full text-white animate-pulse">${icon('sparkles',20)}</div>
+        <span class="font-bold text-lg text-pink-600 tracking-wider">まほうのたまご</span>
+      </div>
+      <div class="flex items-center space-x-3">
+        ${mode === 'adult' ? `<span class="text-[10px] px-2 py-1 rounded-full bg-purple-500 text-white font-bold">⚡おとなモード</span>` : ``}
+        <button onclick="toggleMute()" class="p-1.5 text-pink-500 hover:bg-pink-50 rounded-full transition-colors">
+          ${icon(isMuted ? 'volume-x' : 'volume-2', 20)}
+        </button>
+      </div>
+    </header>
+
+    <main class="w-full max-w-md px-4 mt-6 flex-grow">
+      <div class="grid grid-cols-3 gap-2 mb-4">
+        <button onclick="setTab('timer')" class="py-3 rounded-2xl flex flex-col items-center justify-center space-y-1 transition-all ${activeTab==='timer' ? 'bg-gradient-to-r from-pink-400 to-pink-500 text-white shadow-md shadow-pink-200 font-bold scale-105' : 'bg-white text-gray-500'}">
+          ${icon('clock',20)}<span class="text-xs">タイマー</span>
+        </button>
+        <button onclick="setTab('zukan')" class="py-3 rounded-2xl flex flex-col items-center justify-center space-y-1 transition-all ${activeTab==='zukan' ? 'bg-gradient-to-r from-purple-400 to-purple-500 text-white shadow-md shadow-purple-200 font-bold scale-105' : 'bg-white text-gray-500'}">
+          ${icon('book-open',20)}<span class="text-xs">ずかん (${state.discovered.length})</span>
+        </button>
+        <button onclick="setTab('history')" class="py-3 rounded-2xl flex flex-col items-center justify-center space-y-1 transition-all ${activeTab==='history' ? 'bg-gradient-to-r from-cyan-400 to-cyan-500 text-white shadow-md shadow-cyan-200 font-bold scale-105' : 'bg-white text-gray-500'}">
+          ${icon('award',20)}<span class="text-xs">きろく</span>
+        </button>
+      </div>
+  `;
+
+  // ===== A. タイマー =====
+  if (activeTab === 'timer') {
+    html += `
+      <div class="space-y-4">
+        <div class="bg-white rounded-3xl p-6 shadow-sm border border-pink-100 relative overflow-hidden flex flex-col items-center">
+          <div class="absolute top-2 right-3 flex items-center space-x-1 bg-pink-50 text-pink-600 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+            <span>Lv.${char.level}</span><span>${char.name}</span>
+          </div>
+          <div class="relative mb-4 mt-2 max-w-[85%]">
+            <div id="supportMsg" class="bg-pink-50 text-pink-700 text-sm py-2 px-4 rounded-2xl border border-pink-200 text-center font-bold shadow-sm">${supportMsg}</div>
+            <div class="w-3 h-3 bg-pink-50 border-r border-b border-pink-200 absolute left-1/2 -bottom-1.5 -translate-x-1/2 rotate-45"></div>
+          </div>
+          <div class="relative my-8">${charIcon(char, 120, isRunning)}</div>
+          <div class="w-full mt-2">
+            <div class="flex justify-between items-center text-xs text-purple-600 font-bold mb-1">
+              <span id="gaugePercent" class="flex items-center">${icon('flame',16,'text-orange-500 mr-1')}成長ゲージ：${pct}%</span>
+              <span id="gaugeRemain">${remainText}</span>
+            </div>
+            <div class="w-full h-4 bg-purple-100 rounded-full overflow-hidden border border-purple-200 p-0.5">
+              <div id="gaugeFill" class="h-full bg-gradient-to-r from-pink-400 via-purple-400 to-pink-500 rounded-full transition-all duration-300" style="width:${pct}%"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-3xl p-6 shadow-sm border border-pink-100 flex flex-col items-center">
+          <div class="text-center my-2">
+            <p class="text-xs font-bold text-gray-400 tracking-wider">⏱ 今回のがんばり時間</p>
+            <h2 id="timerDigits" class="text-5xl font-mono font-bold text-gray-700 tracking-widest mt-1">${formatTimerDigits(timerSeconds)}</h2>
+          </div>
+          <div class="flex space-x-4 w-full mt-4">
+            ${isRunning
+              ? `<button onclick="handleStop()" class="flex-1 py-4 bg-gradient-to-r from-yellow-400 to-amber-500 text-white rounded-2xl font-bold text-lg shadow-md active:scale-95 transition-all flex items-center justify-center space-x-2 animate-pulse">${icon('square',20)}<span>おわる（保存）</span></button>`
+              : `<button onclick="handleStart()" class="flex-1 py-4 bg-gradient-to-r from-pink-400 to-pink-500 text-white rounded-2xl font-bold text-lg shadow-md active:scale-95 transition-all flex items-center justify-center space-x-2">${icon('play',24)}<span>お勉強スタート！</span></button>`
+            }
+          </div>
+          <div class="mt-4 pt-4 border-t border-gray-100 w-full flex justify-between text-xs text-gray-500">
+            <span>ぜんぶのがんばり時間：</span>
+            <span id="totalTime" class="font-bold text-pink-600 text-sm">${formatTimeText(state.totalSeconds)}</span>
+          </div>
+        </div>
+
+        ${char.level === 5 ? `
+        <div class="bg-purple-100 rounded-3xl p-4 text-center border border-purple-200">
+          <p class="text-xs text-purple-700 font-bold mb-2">🎉 おめでとう！最高レベル（Lv.5）まで 育ったよ！</p>
+          <button onclick="resetToEgg()" class="py-2 px-4 bg-purple-500 text-white text-xs font-bold rounded-xl transition-colors shadow">新しい たまご をもらう 🥚</button>
+        </div>` : ``}
+      </div>
+    `;
+  }
+
+  // ===== B. ずかん =====
+  if (activeTab === 'zukan') {
+    let grid = '';
+    Object.values(CHARACTERS).forEach(c => {
+      const found = state.discovered.includes(c.id);
+      grid += `
+        <div class="border rounded-xl p-2 flex flex-col items-center justify-center relative aspect-square ${found ? 'bg-gradient-to-b from-purple-50 to-white border-purple-200 shadow-sm' : 'bg-gray-50 border-gray-100 text-gray-300'}">
+          <span class="absolute top-1 left-1.5 text-[8px] font-bold text-gray-400">Lv.${c.level}</span>
+          ${found
+            ? `${charIcon(c, 24, false)}<span class="text-[8px] font-bold text-purple-600 text-center mt-1 leading-tight break-words w-full">${c.name}</span>`
+            : `${icon('help-circle',20,'text-gray-300')}<span class="text-[8px] font-bold text-gray-400 text-center mt-1">？？？</span>`
+          }
+        </div>`;
+    });
+    html += `
+      <div class="bg-white rounded-3xl p-4 shadow-sm border border-purple-100 space-y-4">
+        <div class="text-center">
+          <h2 class="text-lg font-bold text-purple-600 flex items-center justify-center space-x-1">${icon('book-open',20)}<span>ペットずかん</span></h2>
+          <p class="text-xs text-gray-400 mt-1">見つけたペット： ${state.discovered.length} / ${totalChars} 匹</p>
+          <div class="w-full bg-gray-200 rounded-full h-2 mt-2"><div class="bg-purple-500 h-2 rounded-full" style="width:${(state.discovered.length/totalChars)*100}%"></div></div>
+        </div>
+        <div class="grid grid-cols-4 gap-2 max-h-[60vh] overflow-y-auto pr-1 pb-4 scroll-area">${grid}</div>
+      </div>`;
+  }
+
+  // ===== C. きろく =====
+  if (activeTab === 'history') {
+    let logs = '';
+    if (state.history.length === 0) {
+      logs = `<div class="text-center py-8 text-gray-400 text-xs">まだ お勉強のきろくが ありません。<br />タイマーをスタートして、がんばりをためよう！</div>`;
+    } else {
+      state.history.forEach(log => {
+        logs += `
+          <div class="p-3 rounded-xl border flex justify-between items-center ${log.type==='evolution' ? 'bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200' : 'bg-gray-50 border-gray-100'}">
+            <div>
+              <div class="flex items-center space-x-1.5">
+                <span class="text-[10px] text-gray-400">${log.date}</span>
+                ${log.type==='evolution' ? `<span class="text-[10px] bg-purple-100 text-purple-700 px-1.5 rounded font-bold">成長</span>` : ``}
+              </div>
+              <p class="text-xs font-bold text-gray-700 mt-1">${log.text}</p>
+            </div>
+            ${log.type==='study' ? `<span class="text-xs text-gray-500 font-mono">+${formatTimerDigits(log.duration)}</span>` : ``}
+          </div>`;
+      });
+    }
+    html += `
+      <div class="bg-white rounded-3xl p-6 shadow-sm border border-cyan-100 space-y-4">
+        <div class="text-center"><h2 class="text-lg font-bold text-cyan-600 flex items-center justify-center space-x-1">${icon('award',20)}<span>がんばりログ</span></h2></div>
+        <div class="space-y-2 max-h-[50vh] overflow-y-auto pr-1 scroll-area">${logs}</div>
+        <div class="pt-4 border-t border-gray-100 text-center">
+          <button onclick="fullReset()" class="text-[10px] text-red-400 hover:text-red-500 underline flex items-center justify-center mx-auto space-x-1">${icon('rotate-ccw',12)}<span>ぜんぶ はじめから やり直す</span></button>
+        </div>
+      </div>`;
+  }
+
+  // ===== main 閉じ + フッター（大人モードボタンを最下部に配置） =====
+  html += `
+    </main>
+
+    <footer class="w-full max-w-md text-center mt-6 px-6 space-y-3">
+      <div class="flex items-center justify-center space-x-1.5 text-[10px] text-gray-400 bg-white/40 py-2 rounded-xl backdrop-blur">
+        ${icon('info',14,'text-pink-400')}<span>毎日の記録は自動で保存されます（この端末のブラウザ内）</span>
+      </div>
+      <div class="pt-2">
+        <button onclick="toggleAdult()" class="text-[10px] ${mode==='adult' ? 'text-purple-500 underline' : 'text-gray-300 hover:text-gray-400'} transition-colors">
+          ${mode==='adult' ? '⚡ おとなモード解除（通常モードに戻す）' : 'おとなモードに切り替える（動作確認用）'}
+        </button>
+      </div>
+    </footer>
+  </div>
+  `;
+
+  // ===== 進化モーダル =====
+  if (showEvolutionModal) {
+    const prev = prevCharacterId ? CHARACTERS[prevCharacterId] : null;
+    html += `
+      <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full border-4 border-pink-300 text-center shadow-2xl relative overflow-hidden pop">
+          <div class="absolute inset-0 bg-gradient-to-b from-pink-50/50 via-purple-50/50 to-white pointer-events-none -z-10"></div>
+          <div class="absolute top-2 left-1/2 -translate-x-1/2">${icon('sparkles',40,'text-yellow-400 animate-spin')}</div>
+          <h3 class="text-xl font-black text-pink-600 mt-4 tracking-wider animate-bounce">🌟 おおきくなったよ！ 🌟</h3>
+          <div class="flex items-center justify-center my-6 space-x-3">
+            ${prev ? `<div class="opacity-50 scale-75 border-2 border-dashed border-pink-200 p-2 rounded-2xl bg-white">${charIcon(prev,48,false)}<p class="text-[10px] font-bold text-gray-400 mt-1">${prev.name}</p></div>` : ``}
+            ${icon('chevron-right',24,'text-pink-400')}
+            <div class="p-4 bg-gradient-to-b from-yellow-50 to-white border-2 border-yellow-300 rounded-3xl shadow-md scale-110">${charIcon(char,64,false)}<p class="text-sm font-bold text-pink-600 mt-2">${char.name}</p></div>
+          </div>
+          <p class="text-sm font-bold text-purple-700 px-2 leading-relaxed">キミが がんばってお勉強したから、<br /><span class="text-lg text-pink-600 underline decoration-pink-300 decoration-wavy">${char.name}</span>にしんかしたよ！</p>
+          <p class="text-xs text-gray-500 mt-3 px-4 leading-relaxed bg-gray-50 py-2.5 rounded-2xl">${char.desc}</p>
+          <button onclick="closeModal()" class="mt-6 w-full py-3 bg-gradient-to-r from-pink-400 to-pink-500 text-white font-bold rounded-2xl shadow-md transition-all text-sm">いっしょに お勉強を つづける！💖</button>
+        </div>
+      </div>`;
+  }
+
+
+  // 確認ダイアログ
+  if (confirmDialog) {
+    html += `
+      <div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-xs w-full border-4 border-purple-200 text-center shadow-2xl pop">
+          <p class="text-sm font-bold text-gray-700 leading-relaxed">${confirmDialog.message}</p>
+          <div class="flex gap-3 mt-6">
+            <button onclick="confirmNo()" class="flex-1 py-3 bg-gray-100 text-gray-500 font-bold rounded-2xl text-sm active:scale-95 transition-all">やめる</button>
+            <button onclick="confirmYes()" class="flex-1 py-3 bg-gradient-to-r from-purple-400 to-purple-500 text-white font-bold rounded-2xl text-sm shadow active:scale-95 transition-all">はい</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  document.getElementById('app').innerHTML = html;
+}
+
+// =========================================================
+//  起動
+// =========================================================
+window.addEventListener('DOMContentLoaded', () => {
+  saveSlot();   // 初回起動でも通常スロットを作成
+  render();
+});
+
+//APP_END
+</script>
+</body>
+</html>
